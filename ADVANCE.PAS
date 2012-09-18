@@ -170,7 +170,7 @@ procedure DelFC(var s:string);
 {---  ' '-related string functions }
 FUNCTION  AddSpace(const s:string; N:byte):string;
 FUNCTION  PredSpace(s:string; N:byte):string;
-Function  DelSpaces(s : string) : string;
+Function  DelSpaces(s : string):string;
 procedure DelSpace(var s : string);
 Procedure DelRight(var S: string);
 procedure DelLeft (var S: string);
@@ -365,7 +365,7 @@ function  GetDateTime(Time: Boolean): string;
 
 IMPLEMENTATION
 
-uses xTime;
+uses xTime, SysUtils;
 
 
  function GetDateTime(Time: Boolean): string;
@@ -444,9 +444,9 @@ uses xTime;
 
 
 
-procedure MakeDate;
+procedure MakeDate(Mode,Day,Month,Year,Hour,Min: Word; var S: string);
 
- procedure GetDig(R: Byte; var S); assembler;
+ (*procedure GetDig(R: Byte; var S); assembler;
  asm
    les bx, S
 {   mov byte ptr es:[bx], 2}
@@ -461,40 +461,44 @@ procedure MakeDate;
    mov al, '0'
   @@1:
    mov es:[bx], ax
- end;
+ end;*)
 
 begin
   Year := Year mod 100;
   FillChar(S, 16, 32);
-  S[0] := #15;
+  //S[0] := #15;
+  s:='';
   Move(CountryInfo.DateSep[1], S[3], Length(CountryInfo.DateSep));
   Move(CountryInfo.DateSep[1], S[6], Length(CountryInfo.DateSep));
   Move(CountryInfo.TimeSep[1], S[12], Length(CountryInfo.TimeSep));
   case CountryInfo.DateFmt of
     0: begin
-         GetDig(Day, S[4]);
+         {GetDig(Day, S[4]);
          GetDig(Month, S[1]);
-         GetDig(Year, S[7]);
+         GetDig(Year, S[7]);}
+         s:=intToStr(month)+intToStr(day)+intToStr(year);
        end;
     1: begin
-         GetDig(Day, S[1]);
+         {GetDig(Day, S[1]);
          GetDig(Month, S[4]);
-         GetDig(Year, S[7]);
+         GetDig(Year, S[7]);}
+         s:=intToStr(day)+intToStr(month)+intToStr(year);
          if S[1] = '0' then S[1] := ' ';
        end;
     2: begin
-         GetDig(Day, S[7]);
+         {GetDig(Day, S[7]);
          GetDig(Month, S[4]);
-         GetDig(Year, S[1]);
+         GetDig(Year, S[1]);}
+         s:=intToStr(year)+intToStr(month)+intToStr(day);
        end;
   end;
-  GetDig(Min, S[13]);
+  //GetDig(Min, S[13]);
   if CountryInfo.TimeFmt = 0 then
     begin
       if Hour <= 12 then if Hour = 12 then S[15] := 'p' else S[15] := 'a'
                     else begin Dec(Hour, 12); S[15] := 'p' end;
-    end else Dec(S[0]);
-  GetDig(Hour, S[10]);
+    end;// else Dec(S[0]);
+  //GetDig(Hour, S[10]);
   if S[10] = '0' then S[10] := ' ';
 end;
 (*assembler;
@@ -571,14 +575,14 @@ asm
 end;
 *)
 
-FUNCTION GetPath;
+FUNCTION GetPath(S: PathStr): PathStr;
 var B: Byte;
 begin
   B := Length(S); while (B > 0) and (S[B] <> '\') do Dec(B);
   If B=0 then GetPath:=S else GetPath:=Copy(S, 1, B)
 end;
 
-FUNCTION GetName;
+FUNCTION GetName(S: PathStr): PathStr;
 var B: Byte;
 begin
   B:=Length(S);
@@ -587,12 +591,12 @@ begin
   GetName:=S;
 end;
 
-FUNCTION XRandom;
+FUNCTION XRandom(N: Integer): Integer;
 begin
   XRandom:=N div 2 - Random(N)
 end;
 
-FUNCTION GetExt;
+FUNCTION GetExt(const s:string):string;
 var i:byte;
 begin
   i:=PosChar('.',s);
@@ -601,7 +605,7 @@ begin
     else GetExt:=Copy(s,i,length(s)-i)
 end;
 
-Function LowCase(c : Char) : Char;assembler;
+{Function LowCase(c : Char) : Char;assembler;//obsolete should use LowerCase
 label LocEx;
 asm
    mov al,c
@@ -611,9 +615,9 @@ asm
    jnc LocEx
    xor al,$20
 LocEx:
-end;
+end;}
 
-Procedure LowStr(var s : string);assembler;
+{Procedure LowStr(var s : string);assembler;//obsolete should use LowerCase
 label NextChar,NoLow,LocExit;
 asm
    les  bx,s
@@ -633,7 +637,7 @@ NoLow:
    inc  bx
    loop NextChar
 LocExit:
-end;
+end;}
 
 
 Function LowStrg(s : string) : string;
@@ -642,7 +646,7 @@ begin
  LowStrg:=s;
 end;
 
-Procedure UpStr(var s : string);assembler;
+{Procedure UpStr(var s : string);assembler;  //obsolete should use UpperCase
 label NextChar,NoLow,LocExit;
 asm
    les  bx,s
@@ -662,9 +666,9 @@ NoLow:
    inc  bx
    loop NextChar
 LocExit:
-end;
+end;}
 
-Function UpStrg(const s : string) : string; assembler;
+{Function UpStrg(const s : string) : string; assembler;//obsolete should use UpperCase
 label NextChar,NoLow,LocExit;
 asm
    cld
@@ -688,39 +692,20 @@ NoLow:
    loop NextChar
 LocExit:
    pop  ds
-end;
+end;}
 
-procedure DelSpace; assembler;
-asm
-  les bx, S
-  xor ch, ch
-  mov cl, es:[bx]
-  jcxz @@1
-  mov  di, 1
-  mov  si, 1
-  xor  al, al
-  mov  es:[bx], al
-@@2:
-  mov  al, es:[bx][di]
-  cmp  al, ' '
-  jz   @@3
-  cmp  al, 9
-  jz   @@3
-  mov  es:[bx][si], al
-  inc  byte ptr es:[bx]
-  inc  si
-@@3:
-  inc  di
-  loop @@2
-@@1:
-end;
-
-
-Function DelSpaces;
+Function DelSpaces(s : string):string;
 begin
  DelSpace(S);
  DelSpaces := S;
 end;
+
+procedure DelSpace(var s : string): string;
+begin
+  resault:=StringReplace(s,' ','');
+end;
+
+
 
 Function MakeFileName(S: string): string;
  var I: Integer;
