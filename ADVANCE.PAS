@@ -291,7 +291,7 @@ const
          x_x     : string[3] = '*.*';
 
 var
-    ShiftState: Byte absolute $40:$17;
+    ShiftState: Byte ;//absolute $40:$17; todo !!!
     Abort : Boolean;
     DOS40 : Boolean;
     OS210 : Boolean;
@@ -369,7 +369,7 @@ uses xTime;
 
 
  function GetDateTime(Time: Boolean): string;
-  var S: string[30];
+  var S: string;
       Y,M,D,DW: Word;
       H,Mn,SS,S100: Word;
 
@@ -404,13 +404,14 @@ uses xTime;
    GetTime(H,Mn,SS,S100);
    MakeDate(0, D, M, Y mod 100, H, Mn, S);
    if Time then S := FormatTimeStr(H, Mn, SS)
-           else S[0] := #8;
+           else S := #8;
    GetDateTime := S;
  end;
 
  procedure Beep;
 
- procedure Twf(a,b : Word);assembler;
+ (*
+ procedure Twf(a,b : Word);assembler;// this code is unused, and i don't know what it means
  asm
          cli
          mov dx,60
@@ -439,6 +440,7 @@ uses xTime;
    3 : begin Twf(1200,1);end;
   end;
  end;
+ *)
 
 
 
@@ -2290,4 +2292,4 @@ BEGIN
  LowcaseArray[#0] := #0;
  Dos40 := Lo(DosVersion)>=4;
  OS210 := (Lo(DosVersion)>=20) and (GetEnv('OS2COMSPEC') <> '');
-END.
+END.

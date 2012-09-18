@@ -81,7 +81,7 @@ const
   TicsPerDay = 1573040;      {Assumes 18.20648 tics/sec}
 
 var
-  BiosTics : LongInt absolute $40:$6C;
+  BiosTics : LongInt;// absolute $40:$6C; //todo
 
 
 
@@ -162,7 +162,7 @@ var
     end;
   end;
 
-  procedure DateToDMY(Julian : Date; var Day, Month, Year : Integer);
+  procedure DateToDMY(Julian : Date; var Day, Month, Year : word);
     {-Convert from a julian date to month, day, year}
   var
     I : LongInt;
@@ -257,7 +257,7 @@ var
     DT2 := DT1;
 
     {date first}
-    Inc(Integer(DT2.D), Days);
+    DT2.D:=DT2.D + Days;
 
     if Secs < 0 then begin
       {change the sign}
@@ -304,7 +304,7 @@ var
 
     {Convert to DT format}
     with DT do begin
-      DateToDMY(DTR.D, Integer(Day), Integer(Month), Integer(Year));
+      DateToDMY(DTR.D, Day, Month, Year);
       TimeToHMS(DTR.T, H, M, S);
       Hour := H;
       Min := M;
@@ -436,4 +436,4 @@ end;
 
 
 
-end.
+end.

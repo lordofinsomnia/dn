@@ -72,17 +72,17 @@ type
       BlocksUsed : Word;          { Number of 1K blocks used. Always allocates
                                     at least one byte more than Size. }
       Size : LongInt;             { The current size of the stream }
-      Position : LongInt;         { Current position }
+      //Position : LongInt;         { Current position }
 
       constructor Init(MinSize,MaxSize:longint);
       destructor Done; virtual;
 
       function GetPos : LongInt; virtual;
       function GetSize : LongInt; virtual;
-      procedure Read(var Buf; Count : Word); virtual;
+      procedure Read(var Buf; Count : Word); reintroduce;
       procedure Seek(Pos : LongInt); virtual;
       procedure Truncate; virtual;
-      procedure Write(var Buf; Count : Word); virtual;
+      procedure Write(var Buf; Count : Word); reintroduce;
 
       procedure NewBlock;         { Internal method to allocate a block }
       procedure FreeBlock;        { Internal method to free one block }
@@ -586,4 +586,4 @@ end;
    mov XMSSize, ax
   end;
  }
-END.
+END.
