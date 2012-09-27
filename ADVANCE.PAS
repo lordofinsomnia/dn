@@ -365,7 +365,7 @@ function  GetDateTime(Time: Boolean): string;
 
 IMPLEMENTATION
 
-uses xTime, SysUtils;
+uses xTime, SysUtils, ports;
 
 
  function GetDateTime(Time: Boolean): string;
@@ -696,16 +696,14 @@ end;}
 
 Function DelSpaces(s : string):string;
 begin
- DelSpace(S);
- DelSpaces := S;
+ //DelSpace(S);
+ DelSpaces := StringReplace(s,' ','',[rfReplaceAll]);
 end;
 
-procedure DelSpace(var s : string): string;
+{procedure DelSpace(var s: string):string;
 begin
-  resault:=StringReplace(s,' ','');
-end;
-
-
+  DelSpace:=StringReplace(s,' ','');
+end;}
 
 Function MakeFileName(S: string): string;
  var I: Integer;
@@ -715,28 +713,24 @@ begin
  I := 8;
  While (I > 0) and (S[I] = ' ') do begin Delete(S, I, 1); Dec(I); end;
  While S[L] = ' ' do Dec(L);
- if S[Length(S)] = '.' then Dec(S[0]);
+ if S[Length(S)] = '.' then
+    s:=copy(s,0,length(s)-1);
+
  MakeFileName := S;
 end;
 
-Function Strg; assembler;
-asm
-  les  di, @Result
-  mov  al, Num
-  stosb
-  mov  ch, 0
-  mov  cl, al
-  mov  al, c
-  rep  stosb
+Function Strg:string;
+begin
+     Strg:='what this thing should do?!';//todo
 end;
 
-Procedure SetBlink(Mode : boolean); assembler;
-asm
-      MOV  AX,1003H
+Procedure SetBlink(Mode : boolean); //assembler; todo
+begin
+      {MOV  AX,1003H
       MOV  BL,Mode
       push bp
       INT  10h
-      pop  bp
+      pop  bp}
 end;
 
 Function  ItoS(a:longint):string;
@@ -767,7 +761,7 @@ begin
  SStr:=s;
 end;
 
-Function  FStr(a:TSize):string;
+{Function  FStr(a:TSize):string;
  var s,s1 : string[40];
      s1l: byte absolute s1;
      i : Integer;
@@ -819,33 +813,43 @@ begin
    s1[s1l] := 'K';
  end;
  FStr:=s1;
+end;}
+
+Function Hex2(a : byte) : Str2;
+begin
+  Hex2:=HexChar(a shr 4)+HexChar(a);
 end;
 
-Function Hex2;
-begin Hex2:=HexChar(a shr 4)+HexChar(a) end;
-
-Function Hex4;
+Function Hex4(a : word) : Str4;
 begin
  Hex4:=HexChar(Hi(a) shr 4)+HexChar(Hi(a))+
        HexChar(Lo(a) shr 4)+HexChar(Lo(a));
 end;
 
-Function Hex8;
+Function Hex8(a : LongInt) : Str8;
 var s: Str8;
 begin
  s[0]:=#8; Hex8Lo(a,s[1]); Hex8 := s;
 end;
 
-Function HexChar(a : byte) : char; assembler;
-label Loc1;
-asm
-   mov al,a
-   and al,0Fh
-   add al,'0'
-   cmp al,58
-   jc  Loc1
-   add al,7
-Loc1:
+Function HexChar(a : byte) : char;  //optimize this function
+var
+  res:ansiString;
+begin
+  if (a>=0) and (a<10) then
+     res:=intToStr(a)
+  else
+  begin
+    case a of
+      10:res:='a';
+      11:res:='b';
+      12:res:='c';
+      13:res:='d';
+      14:res:='e';
+      15:res:='f';
+    end;
+  end;
+  HexChar:=res[1];
 end;
 
 Procedure DefineChar(n : Integer;var a);
@@ -855,7 +859,7 @@ begin
  PortW[$3CE]:=$0005;
  PortW[$3CE]:=$0406;
  PortW[$3CE]:=$0204;
- move(a,mem[$A000:n*32],16);
+// move(a,mem[$A000:n*32],16); todo wtf is this
  PortW[$3C4]:=$0302;
  PortW[$3C4]:=$0304;
  PortW[$3CE]:=$1005;
@@ -870,7 +874,7 @@ begin
  PortW[$3CE]:=$0005;
  PortW[$3CE]:=$0406;
  PortW[$3CE]:=$0204;
- move(mem[$A000:n*32],a,16);
+ //move(mem[$A000:n*32],a,16); todo wtf is this
  PortW[$3C4]:=$0302;
  PortW[$3C4]:=$0304;
  PortW[$3CE]:=$1005;
@@ -885,11 +889,14 @@ begin
  Abort    := Off;
 end;
 
-function Cut;
+function Cut(p : string; len : Byte ) : string;
+var
+   tmpStr:string;
 begin
- Cut:=p; if Len>=Byte(p[0]) then Exit;
- Delete(p,3,Byte(p[0])-Len+4);Insert('...',p,3);
- Cut:=p;
+ tmpStr:=copy(p,0, len);
+ if Len>=length(p) then
+    tmpStr:=tmpStr+'...';
+ Cut:=tmpStr;
 end;
 
 procedure GetMask(var m : string);
