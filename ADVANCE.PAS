@@ -246,7 +246,7 @@ FUNCTION Real2Str(X: Real; N: Byte): string;
 FUNCTION Long2Str(X: Longint; L: Byte): string;
 FUNCTION Long0Str(X: Longint; L: Byte): string;
 FUNCTION ToHex(I: Word): string;
-PROCEDURE DosWrite( S: string );
+//PROCEDURE DosWrite( S: string ); //it's not used
 FUNCTION  PosChar(C: Char; S: string): Byte;
 procedure MakeDate(Mode,Day,Month,Year,Hour,Min: Word; var S: string);
 procedure MakeCurrency(R: Real; var S: string);
@@ -899,16 +899,22 @@ begin
  Cut:=tmpStr;
 end;
 
-procedure GetMask(var m : string);
- var q : string[12];
-     i : Byte;
-     b : Boolean;
+(*procedure GetMask(var m : string); //it's not used...
+var
+   q :string[12];
+   i :Byte;
+   b :Boolean;
 begin
  q:='????????.???';
  i:=Pos('.',m);
- if i>0 then if i>9 then Delete(m,9,i-9) else Insert(Copy('        ',1,9-i),m,i)
-   else m:=Copy(m+Strg(' ',8),1,8)+'.   ';
- i:=1;b:=On;
+ if i>0 then if i>9 then
+    Delete(m,9,i-9)
+ else
+    Insert(Copy('        ',1,9-i),m,i);
+// else
+     //m:=Copy(m+Strg(' ',8),1,8)+'.   ';//todo
+ i:=1;
+ b:=On;
  while m[i]<>'.' do
  begin
   if b then
@@ -930,18 +936,40 @@ begin
    Inc(i);
  end;
  m:=LowStrg(q);
-end;
+end;*)
 
-procedure DelDoubles;
+procedure DelDoubles(const St : string;var Source : string);
 begin
  while Pos(ST,Source)>0 do Delete(Source,Pos(St,Source),1);
 end;
 
-FUNCTION Min; begin if x<y then Min:=X else Min:=Y end;
-FUNCTION Max; begin if x<y then Max:=Y else Max:=X end;
-FUNCTION Sgn; begin if x>0 then Sgn:=1 else if x<0 then Sgn:=-1 else Sgn:=0 end;
+FUNCTION Min(x,y: LongInt):LongInt;
+begin
+  if x<y then
+     Min:=X
+  else
+     Min:=Y
+end;
 
-PROCEDURE DosWrite;assembler;
+FUNCTION Max(x,y: LongInt):LongInt;
+begin
+  if x<y then
+     Max:=Y
+  else
+     Max:=X
+end;
+
+FUNCTION Sgn(x  : integer):integer;
+begin
+  if x>0 then
+    Sgn:=1
+  else if x<0 then
+    Sgn:=-1
+  else
+    Sgn:=0
+end;
+
+{PROCEDURE DosWrite;assembler; //it's not used...
 asm
   les  di,S
   xor  cx,cx
@@ -960,28 +988,15 @@ asm
   pop  es
   loop @loop
 @empty:
-end;
+end;}
 
-FUNCTION  PosChar; assembler;
-asm
-  les di,S
-  xor ch,ch
-  mov cl,byte ptr es:[di]
-  mov bx,cx
-  inc di
-  cld
-  mov al,C
-  repne scasb
-  jnz @S
-  sub bx,cx
-  mov al,bl
-  jmp @Q
-@S:xor al,al
-@Q:
+FUNCTION  PosChar(C: Char; S: string): Byte;
+begin
+  PosChar:=pos(c,s); //test!!!
 end;
 
 
-FUNCTION Norm12;
+FUNCTION Norm12(const s:string):Str12;
 var R: string[12]; I: Byte; L: Byte absolute S;
 begin
   {if S[0]=#12 then begin Norm12:=S; Exit end;}
@@ -1001,7 +1016,7 @@ begin
   Norm12:=R
 end;
 
-FUNCTION InMask;
+FUNCTION InMask(const Name,Mask: string):Boolean;
 var i:byte;
 begin
   i:=13;
@@ -1013,12 +1028,14 @@ begin
   until i=0; InMask:=On
 end;
 
-FUNCTION InFilter;
+FUNCTION InFilter(Name,Filter: string):Boolean;
 var i:byte; l:byte absolute Filter;
     S: string[13];
     B: Boolean;
 begin
-  InFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+
+  InFilter:=Pos(Name,Filter) > 0; // does this need to be this complicated?
+  {InFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit; Name:=Norm12(Name);
   repeat if Filter[l]=';' then dec(l);
@@ -1031,10 +1048,10 @@ begin
       if (S <> '') and InMask(Name, Norm12(S)) then Exit;
       l:=pred(i);
     end
-  until l=0; InFilter:=Off
+  until l=0; InFilter:=Off}
 end;
 
-FUNCTION InSpaceMask;
+FUNCTION InSpaceMask(Name,Mask: string;ValidSpace: Boolean):Boolean;
 var i:byte;
     j:Boolean;
 begin
@@ -1046,12 +1063,13 @@ begin
   until i=0; InSpaceMask:=On
 end;
 
-FUNCTION InSpaceFilter;
+FUNCTION InSpaceFilter(Name,Filter: string):Boolean;
 var i:byte; l:byte absolute Filter;
     S: string[13];
     B: Boolean;
 begin
-  InSpaceFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
+  InSpaceFilter:=Pos(Name,Filter) > 0;  //does this need to be this complicated?
+  {InSpaceFilter:=On; if Pos(' ',Filter) > 0 then Filter := DelSpaces(Filter);
   UpStr(Filter); UpStr(Name);
   if Filter='' then Exit; Name:=Norm12(Name);
   repeat if Filter[l]=';' then dec(l);
@@ -1064,13 +1082,22 @@ begin
       if (S <> '') and InSpaceMask(Name, Norm12(S), On) then Exit;
       l:=pred(i);
     end
-  until l=0; InSpaceFilter:=Off
+  until l=0; InSpaceFilter:=Off}
 end;
 
 
 
-FUNCTION AddSpace(const s:string; N:byte):string; assembler;
-asm
+FUNCTION AddSpace(const s:string; N:byte):string;
+var
+  i:integer;
+  strOut:string;
+begin
+  strOut:=s;
+
+  for i:=0 to n-1 do
+    strOut:=strOut+' ';
+  AddSpace:=strOut;
+{asm
    cld
    push  ds
    lds   si, s
@@ -1095,25 +1122,52 @@ asm
    mov  cl, al
    rep movsb
 @End:
-   pop  ds
+   pop  ds}
 end;
 
-FUNCTION PredSpace;
+{FUNCTION PredSpace(s:string; N:byte):string;//not used...
 begin
   If Length(S)>=N then PredSpace:=S else begin
     FillChar(FreeStr[1],255,' ');
     Move(S[1], FreeStr[succ(N-Length(S))], Length(S));
     FreeStr[0]:=char(N); PredSpace:=FreeStr
   end
+end;}
+
+FUNCTION Real2Str(X: Real; N: Byte): string;
+begin
+  System.Str(X:N, FreeStr);
+  Real2Str:=FreeStr
 end;
 
-FUNCTION Real2Str; begin System.Str(X:N, FreeStr); Real2Str:=FreeStr end;
-FUNCTION Long2Str; begin Str(x:l,FreeStr); Long2Str:=FreeStr; end;
-FUNCTION Long0Str; var I: Byte;
-begin Str(x:l, FreeStr); For I:=1 to length(FreeStr) do if FreeStr[I]=' ' then FreeStr[I]:='0'; Long0Str:=FreeStr end;
-FUNCTION ToHex; var s:string; c:byte; b:byte;
-begin s:=''; for c:=1 to 4 do begin
-  s:=char(48 + (i and 15) + byte( (i and 15)>9)*7 )+s; i:=i div 16 end;
+FUNCTION Long2Str(X: Longint; L: Byte): string;
+begin
+  Str(x:l,FreeStr);
+  Long2Str:=FreeStr;
+end;
+
+FUNCTION Long0Str(X: Longint; L: Byte): string;
+var
+  I: Byte;
+begin
+  Str(x:l, FreeStr);
+  For I:=1 to length(FreeStr) do
+    if FreeStr[I]=' ' then
+      FreeStr[I]:='0';
+  Long0Str:=FreeStr
+end;
+FUNCTION ToHex(I: Word): string;
+var
+  s:string;
+  c:byte;
+  b:byte;
+begin
+  s:='';
+  for c:=1 to 4 do
+  begin
+    s:=char(48 + (i and 15) + byte( (i and 15)>9)*7 )+s;
+    i:=i div 16
+  end;
   ToHex:=s;
 end;
 
@@ -1132,8 +1186,8 @@ begin
  B1 := GetDrive;
  SetDrive(B);
  if Byte(dr)-65 <> b1 then Exit;
- s:=dr+':\QQP.OBJ'#0;
- asm
+ s:=dr+':\QQP.OBJ'#0;//todo
+{ asm
     lea  di,s1
     push ss
     pop  es
@@ -1150,17 +1204,17 @@ begin
     xor  al,al
 @LocEx:
     mov  [bp-1],al
- end;
+ end;}
 end;
 
-function DumpStr;
- var S: string;
-
+function DumpStr(var B; Addr: LongInt; Count: Integer; Filter: Byte): string;
+var
+  S: string;
 begin
  DumpStr := '';
  if Count <= 0 then Exit;
- S[0] := Char(Count*4+12);
- asm
+ S[1] := Char(Count*4+12);//todo
+ {asm
   les   di, B
   lea   bx, S
   inc   bx
@@ -1294,7 +1348,7 @@ begin
   inc   si
   inc   di
   loop  @@2
- end;
+ end;}
  DumpStr := S;
 end;
 
@@ -1316,60 +1370,13 @@ end;
 
 function UpCaseStr(S: string): string;
 begin
- asm
-  cmp UpcaseInit, 0
-  jnz @@@1
-  call InitUpcase
-@@@1:
-  lea si, UpCaseArray
-  lea di, S
-  mov cl, ss:[di]
-  xor ch, ch
-  xor bh, bh
-  or  cl, cl
-  jz  @Exit
-@@1:
-  inc di
-  mov al, ss:[di]
-  or al, al
-  jz @@2
-  mov bl, al
-  mov al, ds:[bx+si]
-  mov ss:[di], al
-@@2:
-  loop @@1
-@Exit:
- end;
- UpCaseStr := S;
+  UpCaseStr:=UpperCase(s);
 end;
 
 function LowCaseStr(S: string): string;
 begin
- asm
-  cmp UpcaseInit, 0
-  jnz @@@1
-  call InitUpcase
-@@@1:
-  lea si, LowCaseArray
-  lea di, S
-  mov cl, ss:[di]
-  xor ch, ch
-  xor bh, bh
-  or  cl, cl
-  jz  @Exit
-@@1:
-  inc di
-  mov al, ss:[di]
-  or al, al
-  jz @@2
-  mov bl, al
-  mov al, ds:[bx+si]
-  mov ss:[di], al
-@@2:
-  loop @@1
-@Exit:
- end;
- LowCaseStr := S;
+	LowCaseStr:=LowerCase(s);
+
 end;
 
 const LastCase: Byte = 2;
@@ -1377,24 +1384,27 @@ var  Tran: array[Char] of Char;
 
 procedure MakeCase(CaseSensitive: Boolean);
 begin
- if not UpcaseInit then InitUpcase;
- if Byte(CaseSensitive) <> LastCase then
- if CaseSensitive then
-  asm
-   lea bx, Tran
-   add bx, 255
-   mov cx, 256
-@@1:
-   mov ax, cx
-   dec ax
-   mov ds:[bx], al
-   dec bx
-   loop @@1
-  end else Move(UpCaseArray, Tran, 256);
+	if not UpcaseInit then
+ 		InitUpcase;
+ 	if Byte(CaseSensitive) <> LastCase then
+ 		if not CaseSensitive then
+   		Move(UpCaseArray, Tran, 256);
+    {else//todo
+    asm
+     lea bx, Tran
+     add bx, 255
+     mov cx, 256
+  @@1:
+     mov ax, cx
+     dec ax
+     mov ds:[bx], al
+     dec bx
+     loop @@1
+    end}
   LastCase := Byte(CaseSensitive);
 end;
 
-function SearchFor;
+function SearchFor(S: string;var B;L: Word; CaseSensitive: Boolean): Word;
  var D: array[Char] of Word;
      ChBuf: array [0..0] of Char absolute B;
      I: Integer;
